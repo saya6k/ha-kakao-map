@@ -48,7 +48,8 @@ action: kakao_map.search_place
 data:
   query: 카카오판교아지트
 response_variable: found
-# found.results[]: place_name / latitude / longitude / address / road_address / place_url / map_url
+# found.results[]: place_name / latitude / longitude / address / road_address /
+#                  place_url / map_url / category_name / category_group_name
 ```
 
 ### `kakao_map.search_nearby`
@@ -78,6 +79,8 @@ response_variable: nearby
 ```
 
 Categories (18 total): `cafe`, `restaurant`, `convenience_store`, `supermarket`, `hospital`, `pharmacy`, `subway_station`, `bank`, `gas_station`, `parking`, `academy`, `school`, `daycare`, `cultural_facility`, `real_estate`, `public_institution`, `tourist_attraction`, `accommodation`. In the UI these show as localized labels (카페, 음식점, …); the Kakao category codes are handled internally.
+
+For places that aren't one of the 18 group categories (e.g. a polling station / 투표소), use `query` instead. Every result carries Kakao's detailed `category_name` (e.g. `"사회,공공기관 > 행정기관 > 선거관리위원회"`) and `category_group_name`, so automations can filter on the fine-grained category.
 
 ### `kakao_map.get_directions`
 

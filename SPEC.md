@@ -142,8 +142,13 @@ results:
     road_address: 경기 성남시 분당구 ...   # road_address_name
     place_url: http://place.map.kakao.com/...
     map_url: https://map.kakao.com/link/map/스타벅스 판교점,37.39...,127.11...
+    category_name: 음식점 > 카페 > 커피전문점 > 스타벅스   # 문서에 있을 때만
+    category_group_name: 카페                              # 문서에 있을 때만
   - ...   # 검색 결과 순서대로 최대 5건
 ```
+
+`category_name`/`category_group_name`은 카카오 문서에 값이 있을 때만 포함(모든 검색 공통).
+18개 그룹코드에 없는 장소(예: 투표소/선거관리위원회)는 `query`로 찾고 `category_name`으로 세분 구분.
 
 결과 0건 → `ServiceValidationError`.
 

@@ -112,6 +112,31 @@ async def test_search_place_caps_at_five_results(
     ]
 
 
+async def test_search_results_include_kakao_category(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Results surface Kakao's detailed category strings when the document has them."""
+    await _setup_integration(hass)
+    doc = {
+        **STARBUCKS_DOC,
+        "category_name": "음식점 > 카페 > 커피전문점",
+        "category_group_name": "카페",
+    }
+    aioclient_mock.get(KEYWORD_SEARCH_URL, json={"documents": [doc]})
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "search_place",
+        {"query": "스타벅스"},
+        blocking=True,
+        return_response=True,
+    )
+
+    result = response["results"][0]
+    assert result["category_name"] == "음식점 > 카페 > 커피전문점"
+    assert result["category_group_name"] == "카페"
+
+
 async def test_search_nearby_by_category(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:

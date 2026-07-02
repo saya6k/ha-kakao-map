@@ -92,6 +92,12 @@ def _place_result(doc: dict[str, Any]) -> dict[str, Any]:
         "place_url": doc["place_url"],
         "map_url": f"{MAP_LINK_BASE}/{name},{latitude},{longitude}",
     }
+    # Kakao's detailed taxonomy, present on place documents (e.g. a polling station
+    # shows up as category_name "…> 선거관리위원회" even though it has no group code).
+    if doc.get("category_name"):
+        result["category_name"] = doc["category_name"]
+    if doc.get("category_group_name"):
+        result["category_group_name"] = doc["category_group_name"]
     # `distance` (meters from the center) is only present on nearby searches.
     if doc.get("distance"):
         result["distance"] = int(doc["distance"])
