@@ -154,7 +154,7 @@ results:
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
 | `center` | entity_id 또는 `{latitude, longitude}` | O | 검색 중심점 (`resolve_point` 재사용) |
-| `category` | string | △ | 카카오 카테고리 그룹 코드 (CE7 카페, FD6 음식점, CS2 편의점 등) |
+| `category` | string(slug) | △ | 친화적 카테고리 슬러그 (`cafe`, `restaurant`, `convenience_store` 등 18종). 내부에서 Kakao 그룹 코드(CE7/FD6/CS2…)로 변환 |
 | `query` | string | △ | 검색 키워드 |
 | `radius` | int(m) | X | 검색 반경, 기본 1000, 최대 20000 |
 

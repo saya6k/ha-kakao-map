@@ -126,7 +126,7 @@ async def test_search_nearby_by_category(
     response = await hass.services.async_call(
         DOMAIN,
         "search_nearby",
-        {"center": "zone.home", "category": "CS2", "radius": 500},
+        {"center": "zone.home", "category": "convenience_store", "radius": 500},
         blocking=True,
         return_response=True,
     )
@@ -134,6 +134,7 @@ async def test_search_nearby_by_category(
     assert response["results"][0]["place_name"] == "GS25 시청점"
     assert response["results"][0]["distance"] == 120
     query = aioclient_mock.mock_calls[-1][1].query
+    # the friendly category slug is translated to the Kakao group code
     assert query["category_group_code"] == "CS2"
     assert query["x"] == "126.9779"
     assert query["radius"] == "500"
@@ -191,7 +192,7 @@ async def test_search_nearby_no_results(
         await hass.services.async_call(
             DOMAIN,
             "search_nearby",
-            {"center": {"latitude": 37.5, "longitude": 127.0}, "category": "CE7"},
+            {"center": {"latitude": 37.5, "longitude": 127.0}, "category": "cafe"},
             blocking=True,
             return_response=True,
         )

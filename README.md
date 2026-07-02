@@ -60,7 +60,7 @@ Search around a center by a category code **or** a keyword (exactly one). Each r
 action: kakao_map.search_nearby
 data:
   center: zone.home
-  category: CE7        # see category codes below
+  category: cafe       # pick from the list below
   radius: 1000
 response_variable: cafes
 ```
@@ -77,7 +77,7 @@ data:
 response_variable: nearby
 ```
 
-Category codes: `CE7` 카페, `FD6` 음식점, `CS2` 편의점, `MT1` 대형마트, `HP8` 병원, `PM9` 약국, `SW8` 지하철역, `BK9` 은행, `OL7` 주유소, `PK6` 주차장, `AT4` 관광명소, `AD5` 숙박 (18 codes total).
+Categories (18 total): `cafe`, `restaurant`, `convenience_store`, `supermarket`, `hospital`, `pharmacy`, `subway_station`, `bank`, `gas_station`, `parking`, `academy`, `school`, `daycare`, `cultural_facility`, `real_estate`, `public_institution`, `tourist_attraction`, `accommodation`. In the UI these show as localized labels (카페, 음식점, …); the Kakao category codes are handled internally.
 
 ### `kakao_map.get_directions`
 

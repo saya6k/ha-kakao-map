@@ -15,29 +15,29 @@ search_nearby:
         location:
           radius: false
     category:
-      example: CE7
+      example: cafe
       selector:
         select:
           translation_key: category
           options:
-            - MT1
-            - CS2
-            - PS3
-            - SC4
-            - AC5
-            - PK6
-            - OL7
-            - SW8
-            - BK9
-            - CT1
-            - AG2
-            - PO3
-            - AT4
-            - AD5
-            - FD6
-            - CE7
-            - HP8
-            - PM9
+            - supermarket
+            - convenience_store
+            - daycare
+            - school
+            - academy
+            - parking
+            - gas_station
+            - subway_station
+            - bank
+            - cultural_facility
+            - real_estate
+            - public_institution
+            - tourist_attraction
+            - accommodation
+            - restaurant
+            - cafe
+            - hospital
+            - pharmacy
     query:
       example: "스타벅스"
       selector:

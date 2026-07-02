@@ -22,7 +22,7 @@ from homeassistant.util import dt as dt_util
 
 from .api import KakaoApiError, KakaoLocalApi, KakaoMapRouteApi, TransitResult
 from .const import (
-    CATEGORY_GROUP_CODES,
+    CATEGORY_CODES,
     DEFAULT_NEARBY_RADIUS,
     DIRECTIONS_LINK_BASE,
     DIRECTIONS_MODES,
@@ -60,7 +60,7 @@ POINT_INPUT = vol.Any(cv.entity_id, dict)
 SEARCH_NEARBY_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_CENTER): POINT_INPUT,
-        vol.Optional(ATTR_CATEGORY): vol.In(CATEGORY_GROUP_CODES),
+        vol.Optional(ATTR_CATEGORY): vol.In(CATEGORY_CODES),
         vol.Optional(ATTR_QUERY): cv.string,
         vol.Optional(ATTR_RADIUS, default=DEFAULT_NEARBY_RADIUS): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=MAX_NEARBY_RADIUS)
@@ -113,7 +113,7 @@ async def _async_search_nearby(
     try:
         if category:
             documents = await api.async_search_category(
-                category, center.longitude, center.latitude, radius
+                CATEGORY_CODES[category], center.longitude, center.latitude, radius
             )
         else:
             documents = await api.async_search_keyword(
