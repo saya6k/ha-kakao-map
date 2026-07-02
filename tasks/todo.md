@@ -25,8 +25,10 @@
 - [x] T9: walk ETA 조사 (walkset 계약=Open Q2, timeboxed) — verify: 링크 전용 문서화 (2026-07-02). walkset은 빈 `ids`로 항상 NO_RESULT → walk 링크 전용(ETA null) 확정, SPEC Open Q2 결론 기록
 - [x] **Checkpoint 4**: 전 모드 스모크, Success Criteria #3·#5 (2026-07-02 실 HA 수동 확인: car 381s/2050m, traffic 1098s/2215m·환승0·1500원, bicycle 583s/2206m, walk=null)
 
-## Phase 5: 지도 교체(실험적) + 마무리
-- [x] T10: patch_map/restore_map 로직 — verify: test_map_patch 5케이스 통과 (치환·백업·복원·0건·백업없음). 타일 URL(const)은 T11 실검증 전 provisional
-- [ ] T11: 실 타일 정렬 검증 (Open Q1) — verify: 육안 확인, 실패 시 대안 보고→사용자 결정
-- [ ] T12: README/CHANGELOG/HACS 마무리 — verify: HACS 설치 수동 확인
-- [ ] **Checkpoint 5**: Success Criteria 1~7(+8) 충족, 최종 리뷰
+## Phase 5: 마무리 (지도 교체 폐기)
+- [x] ~~T10: patch_map/restore_map~~ — **폐기(2026-07-03)**. 구현·실측했으나 지도 교체 방식이
+      투영(카카오 타일=Web Mercator 아님, 빈 화면) + 캐시(immutable+SW)로 불가 확정. 코드 제거,
+      SPEC Open Q1 결론 기록. 커밋 4d675fc는 후속 커밋에서 되돌림
+- [x] ~~T11: 실 타일 정렬 검증~~ — **폐기**. 실측으로 Open Q1 종결(정렬 불가, 대안=커스텀 패널)
+- [ ] T12: README/CHANGELOG/HACS 마무리 — verify: HACS 설치 수동 확인 (지도 교체 미지원 명시)
+- [ ] **Checkpoint 5**: Success Criteria 1~7 충족(#8 지도교체는 폐기), 최종 리뷰

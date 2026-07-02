@@ -247,9 +247,13 @@ walk는 링크 전용으로 확정하고 SPEC·README에 문서화.
 
 ---
 
-### Phase 5: 지도 교체(실험적) + 마무리
+### Phase 5: 마무리 (지도 교체 폐기)
 
-## Task 10: `patch_map`/`restore_map` — 패치 로직
+> **T10·T11 폐기(2026-07-03).** 지도 타일 교체는 실측 결과 투영 불일치(카카오 타일=Web Mercator XYZ
+> 아님 → 빈 화면) + 프론트엔드 캐시(immutable 해시 파일명 + 서비스워커 cache-first)로 지원 불가.
+> 코드 제거, 결론은 SPEC Open Q1에 기록. 남은 작업은 T12(문서/HACS)뿐. 아래 T10·T11 원문은 이력용.
+
+## Task 10: `patch_map`/`restore_map` — 패치 로직 (폐기)
 
 **Description:** map_patch.py — hass_frontend 탐색(importlib), cartocdn URL 치환, 백업/복원,
 gzip 재생성. 파일 작업은 executor. 타일 URL은 const로 분리(실측 검증은 T11).
@@ -315,7 +319,7 @@ HACS 설치 검증.
 
 ## Open Questions (SPEC과 동기)
 
-- Open Q1: 카카오 타일 투영 — T11에서 판정
+- Open Q1: 카카오 타일 투영 — **종결(2026-07-03)**: 정렬 불가(빈 화면)+캐시로 지도 교체 폐기. SPEC 참조
 - Open Q2: walkset 계약 — T9에서 판정 (브라우저 devtools 캡처에 사용자 협조 필요할 수 있음)
-- Open Q3: cartocdn 패턴 유지 여부 — T10/T11에서 확인
+- Open Q3: cartocdn 패턴 유지 여부 — **확인됨**: 2026.7 번들에 패턴 존재하나 Q1 결론으로 무의미
 - Open Q4: cars.json waypoints 형식 — T7에서 실측

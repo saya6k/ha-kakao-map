@@ -10,13 +10,17 @@ Home Assistant 커스텀 컴포넌트. Kakao Local REST API, 카카오맵 웹 UR
 1. **장소 검색 서비스** — 자연어 키워드로 장소를 검색해 상위 1건의 좌표·주소·카카오맵 링크를 반환
 2. **길찾기 서비스** — 출발/도착/경유지(선택)를 **entity selector(위치 보유 기기/엔티티) 또는 좌표**로 받아,
    이동수단(자동차/대중교통/도보/자전거)별 카카오맵 길찾기 링크 + 구간 리스트 + 소요시간·도착 예정시간을 반환
-3. **기본 지도 교체 서비스** — HA 프론트엔드의 기본 지도 타일(cartocdn)을 카카오맵 타일로 패치 (실험적, Open Questions 참조)
+3. ~~**기본 지도 교체 서비스**~~ — **폐기(2026-07-03).** 프론트엔드 타일 URL 패치로 시도했으나
+   두 가지가 실증적으로 확인되어 지원하지 않기로 결정: (a) 카카오 타일은 Web Mercator XYZ가 아니라
+   URL 치환 시 빈 타일(투영 불일치, EPSG:5181), (b) HA의 immutable 해시 파일명 + 서비스워커 cache-first로
+   패치가 브라우저에 반영되지 않음. 상세는 Open Q1 결론 참조.
 
 ### 사용자 결정 사항 (2026-07-02 확정)
 
 - 카카오모빌리티 API 미사용 (별도 가입 필요). 소요시간은 카카오맵 웹 내부 API를 파싱해 획득
 - "지도 이미지 링크"는 map.kakao.com 링크로 대체 (카카오는 정적 지도 이미지 REST API 없음)
-- 지도 교체는 map_change 방식(프론트엔드 패치)으로 시도, 깨지면 재검토
+- 지도 교체는 map_change 방식(프론트엔드 패치)으로 시도했으나 폐기(2026-07-03, Open Q1 결론).
+  향후 앱 내 카카오 지도가 필요하면 iframe + 카카오 JS SDK 커스텀 패널이 유일한 방법(별도 옵트인 기능)
 - `get_directions`의 지점 입력은 **좌표 또는 entity selector** — selector로 받은 기기/엔티티는 좌표로 변환해 길찾기
 - 테스트는 devcontainer에서 수행 — `~/Projects/ha-chzzk`, `~/Projects/ha-wardrowbe` 구조 참조
 - 컨테이너 빌드/실행은 Docker 대신 **Apple Container CLI**(`container`) 사용
@@ -101,8 +105,7 @@ custom_components/kakao_map/
   config_flow.py       # REST API 키 입력 + 검증
   const.py             # DOMAIN, URL/모드 상수
   api.py               # KakaoLocalApi(공식: keyword/address/transcoord) + KakaoMapRouteApi(내부: cars/bikeset/pubtrans/walkset)
-  services.py          # search_place / get_directions / patch_map / restore_map 핸들러
-  map_patch.py         # 프론트엔드 타일 URL 패치 로직 (실험적)
+  services.py          # search_place / get_directions 핸들러
   services.yaml
   translations/
     en.json
@@ -114,7 +117,6 @@ tests/
   test_config_flow.py
   test_api.py
   test_services.py
-  test_map_patch.py
 hacs.json
 pyproject.toml         # ruff/mypy/pytest 설정 (wardrowbe 패턴)
 SPEC.md
@@ -193,18 +195,10 @@ legs:                     # 출발지→경유지1, ..., →도착지
   - ...
 ```
 
-### `kakao_map.patch_map` (실험적)
+### ~~`kakao_map.patch_map` / `restore_map`~~ (폐기, 2026-07-03)
 
-필드 없음. 실행 시:
-1. `hass_frontend` 패키지 디렉토리 탐색 (`importlib` 기반)
-2. `frontend_es5/`, `frontend_latest/`에서 `basemaps.cartocdn.com` 포함 JS 파일 검색
-3. 원본을 `.backup`으로 백업 후 타일 URL을 카카오맵 타일 URL로 치환, `.gz` 재생성
-   (파일 작업은 `hass.async_add_executor_job`)
-4. 패치된 파일 수를 응답으로 반환 + HA 재시작·브라우저 캐시 삭제 안내
-
-`kakao_map.restore_map`: `.backup`으로 원복.
-
-map_change와 달리 **원격 스크립트 다운로드 실행 금지** — 패치 로직은 컴포넌트 내 Python으로 구현.
+프론트엔드 타일 URL 패치로 구현·검증했으나 **미지원으로 폐기**. 상세 근거는 Open Q1 결론 참조.
+관련 코드(`map_patch.py`, 두 서비스, 타일 상수, 테스트)는 제거됨.
 
 ## Code Style
 
@@ -240,7 +234,6 @@ async def async_search_keyword(self, query: str) -> list[dict[str, Any]]:
   2. 위치 해석 로직 — 엔티티(좌표 有/無) / 좌표 리스트(`[위도, 경도]`) / 형식 오류(float 아님, 2개 아님) / entity+coords 동시 지정 에러
   3. `get_directions` — URL 조립(모드별·경유지), 내부 API 실패 시 duration null 강등, traffic+경유지 에러
   4. config flow — 정상 / 잘못된 키
-  5. `map_patch.py` — tmp_path 가짜 frontend 파일로 치환·백업·복원
 - 실기기 검증: devcontainer의 `scripts/develop`으로 HA 기동 → 실제 API 키로 서비스 수동 호출 (사용자 수행)
 
 ## Boundaries
@@ -248,7 +241,6 @@ async def async_search_keyword(self, query: str) -> list[dict[str, Any]]:
 - **Always:**
   - 커밋 전 `scripts/test`(ruff + pytest) 통과
   - API 실패를 사용자가 이해할 수 있는 서비스 에러/경고로 변환
-  - 프론트엔드 파일 수정 전 반드시 백업 생성
   - 내부 API 호출 실패 시에도 route_url은 반환 (기능 강등, 실패 아님)
 - **Ask first:**
   - 신규 pip 런타임 의존성 추가
@@ -271,22 +263,30 @@ async def async_search_keyword(self, query: str) -> list[dict[str, Any]]:
 5. 내부 API 차단 상황(모킹)에서 duration=null로 강등되되 링크는 정상 반환
 6. devcontainer에서 `scripts/test` 전체 통과 (ruff + pytest)
 7. HACS 커스텀 저장소로 설치 가능한 구조
-8. (실험적) `patch_map` 실행 후 HA 지도에 카카오 타일 표시 — Open Question 1 해소 전제
+8. ~~(실험적) 지도 타일 카카오 교체~~ — **폐기(2026-07-03).** Open Q1 결론에 따라 미지원
 
 ## Open Questions
 
-1. **카카오 타일 투영 문제 (지도 교체 기능의 핵심 리스크):**
-   HA 지도는 Leaflet + Web Mercator(EPSG:3857). map_change가 쓰는 네이버 타일은 Web Mercator XYZ라
-   단순 URL 치환이 통하지만, **카카오 지도 타일은 자체 좌표계(WCONGNAMUL/EPSG:5181 기반)** 를 사용해
-   URL 치환만으로는 타일이 어긋날 가능성이 높음. 구현 단계에서 실제 타일 URL로 검증하고,
-   정렬 불가 시 보고 후 대안(네이버 타일 폴백 / 기능 제외 / 커스텀 카드) 결정.
-   → 지도 교체를 마지막 태스크로 배치
+1. ~~**카카오 타일 투영 문제**~~ — **해소·기능 폐기로 결론(2026-07-03).** 실측 결과 지도 교체 방식은
+   두 층에서 막혀 지원 불가로 확정:
+   - **투영 불일치**: 같은 z/x/y(서울, z14)를 실측 비교 시 cartocdn은 정상 서울 지도(96KB),
+     `map.daumcdn.net/map_2d_hd/{z}/{x}/{y}`는 단색 빈 타일(311B). 카카오 타일은 EPSG:5181 자체
+     좌표계라 Web Mercator XYZ URL 치환 시 **어긋나는 게 아니라 빈 화면**. 카카오는 공개 Web
+     Mercator XYZ 타일 엔드포인트가 없음. (네이버/VWorld는 WM XYZ지만 카카오가 아님)
+   - **캐시**: 패치된 파일을 HA가 정상 서빙해도, content-hash 파일명 + `Cache-Control: immutable
+     (max-age 31일)` + 서비스워커 cache-first로 브라우저·리버스프록시가 옛 번들을 계속 사용.
+     `Clear site data`/SW unregister 없이는 반영 안 됨(실증). 커뮤니티 보고와도 일치.
+   - 참고: core 2024.8 PR #122430(`IndexView.canonical`/`_route`를 cached_property로)은 `/` 인덱스
+     라우트 최적화일 뿐 정적파일/ETag/SW와 무관 — 캐시 문제의 원인이 아님(레드 헤링).
+   → **결론**: 타일 패치 폐기. 향후 필요 시 iframe + 카카오 JS SDK 커스텀 패널(별도 옵트인)만이 유효.
 2. ~~**walkset.json 요청 계약**~~ — **미해결로 확정(2026-07-02, T9 timebox)**: 전체 파라미터를
    WGS84·WCONGNAMUL 양쪽으로, 짧은 유효 경로(~1km, ~200m)로 시도해도 항상 `resultCode: NO_RESULT`
    (빈 `directions`), 파라미터 누락 시 302. `ids`(노드/링크 식별자)가 사실상 필수이며 사전 경로탐색
    호출에서 얻는 값으로 추정 — 실제 브라우저 walk 요청 캡처 없이는 재현 불가. **결론: walk 모드는
    링크 전용(duration/distance/arrival_time = null)**. 추후 캡처된 요청을 확보하면 T8과 동일 패턴으로 연동.
-3. HA 2026.x 프론트엔드 번들에 `basemaps.cartocdn.com` 문자열 패턴이 유지되는지 — 패치 구현 시 확인
+3. ~~HA 2026.x 프론트엔드 번들의 `basemaps.cartocdn.com` 패턴 유지 여부~~ — **확인됨(2026-07-03)**:
+   2026.7 번들 `frontend_latest`/`frontend_es5`에 `basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}`
+   리터럴 존재(확장자는 런타임 연결). 단 Open Q1 결론으로 지도 교체 자체를 폐기하여 무의미해짐.
 4. ~~`cars.json` 경유지(`waypoints` 파라미터) 형식~~ — **확정(2026-07-02, T7 실측)**: 경유지는
    `경도,위도,name={이름}` 형식이며 여러 개는 `|`로 연결. 단일·2개 경유지 모두 `resultCode: SUCCESS`로
    응답하고 `summary.waypoints`에 이름이 반영됨.
