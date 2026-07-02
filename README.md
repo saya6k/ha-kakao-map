@@ -1,0 +1,120 @@
+# Kakao Map — Home Assistant Integration
+
+[![Built with Claude Code](https://img.shields.io/badge/Built%20with%20Claude%20Code-D97757?style=for-the-badge&logo=claude&logoColor=white)](https://claude.ai/code)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-41BDF5?style=for-the-badge&logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=white)](https://hacs.xyz/)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Shell](https://img.shields.io/badge/Shell-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/saya6k)
+
+Kakao Map for Home Assistant — **place search**, **nearby search**, and **directions** (Kakao Map link plus best-effort travel time) built on the Kakao Local REST API and Kakao Map's web/internal APIs. For Korean users.
+
+> **Map-tile replacement is not supported.** Patching the HA frontend to serve Kakao tiles is not feasible: Kakao tiles are not Web Mercator (XYZ), so a URL swap yields blank tiles, and the frontend's immutable cache + service worker prevent the patch from taking effect. See the Open Q1 conclusion in `SPEC.md`.
+
+## Features
+
+- **`search_place`** — keyword place search, returns the top 5 results with coordinates, addresses, and map links.
+- **`search_nearby`** — search around a center point (entity or coordinates) by Kakao category code or keyword, ordered by distance, with a `distance` field on each result.
+- **`get_directions`** — Kakao Map route link + per-leg points + best-effort travel time / arrival time for car, transit, walk, and bicycle. Points are entities (person / device_tracker / zone / …) or coordinates.
+- **Korean and English** UI translations.
+
+## Installation (HACS)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=saya6k&repository=ha-kakao-map&category=integration)
+
+1. HACS → Integrations → ⋮ → **Custom repositories** — add this repo URL with category **Integration**.
+2. Install **Kakao Map**.
+3. Restart Home Assistant.
+4. Settings → Devices & Services → **Add integration** → search "Kakao Map".
+5. Enter your Kakao **REST API key** (Kakao Developers → My Application → App Keys → REST API key). The key is validated with a single keyword-search call.
+
+## Manual installation
+
+Copy `custom_components/kakao_map/` into your HA config's `custom_components/` folder and restart.
+
+## Configuration
+
+The config flow takes a single **Kakao REST API key** ([Kakao Developers](https://developers.kakao.com)). Only one entry is supported.
+
+## Services
+
+Every service returns a response, so capture it with `response_variable`.
+
+### `kakao_map.search_place`
+
+```yaml
+action: kakao_map.search_place
+data:
+  query: 카카오판교아지트
+response_variable: found
+# found.results[]: place_name / latitude / longitude / address / road_address / place_url / map_url
+```
+
+### `kakao_map.search_nearby`
+
+Search around a center by a category code **or** a keyword (exactly one). Each result includes `distance` (meters).
+
+```yaml
+# Cafes within 1 km of home
+action: kakao_map.search_nearby
+data:
+  center: zone.home
+  category: CE7        # see category codes below
+  radius: 1000
+response_variable: cafes
+```
+
+```yaml
+# Keyword search around coordinates
+action: kakao_map.search_nearby
+data:
+  center:
+    latitude: 37.5665
+    longitude: 126.978
+  query: 스타벅스
+  radius: 500
+response_variable: nearby
+```
+
+Category codes: `CE7` 카페, `FD6` 음식점, `CS2` 편의점, `MT1` 대형마트, `HP8` 병원, `PM9` 약국, `SW8` 지하철역, `BK9` 은행, `OL7` 주유소, `PK6` 주차장, `AT4` 관광명소, `AD5` 숙박 (18 codes total).
+
+### `kakao_map.get_directions`
+
+```yaml
+action: kakao_map.get_directions
+data:
+  origin: person.me                 # an entity …
+  destination:                      # … or coordinates
+    latitude: 37.3945
+    longitude: 127.1112
+  waypoints:                        # optional, up to 5
+    - zone.office
+  mode: car                         # car | traffic | walk | bicycle
+response_variable: route
+# route: route_url / mode / duration(s) / distance(m) / arrival_time / legs[]
+```
+
+See `custom_components/kakao_map/services.yaml` for all fields.
+
+## Notes and limitations
+
+- **Travel time is best-effort.** `duration` / `distance` / `arrival_time` are parsed from Kakao Map's undocumented internal route API, which may change or be blocked; on failure those fields degrade to `null` while the route link (`route_url`) is always returned.
+- **`mode: walk` is link-only** — the walking route API contract is unresolved, so its ETA fields are `null`.
+- **`mode: traffic`** (public transit) does not support waypoints and adds `transfers` and `fare` to the response.
+- No APIs that require a separate subscription (e.g. Kakao Mobility) are used.
+- **No map-tile replacement** — see the note above and `SPEC.md` Open Q1.
+
+## Development
+
+A devcontainer is provided for testing against a real Home Assistant install. Open the folder in VS Code with the Dev Containers extension and run:
+
+```bash
+scripts/develop
+```
+
+HA binds port 8123 inside the container, whose hostname is `ha-kakao-map-dev` so it's distinguishable from any production HA on the host network. Run the lint + test suite with `scripts/test`. See `SPEC.md` for architecture, API facts, and design decisions.
+
+## License
+
+[MIT](LICENSE)

@@ -30,5 +30,6 @@
       투영(카카오 타일=Web Mercator 아님, 빈 화면) + 캐시(immutable+SW)로 불가 확정. 코드 제거,
       SPEC Open Q1 결론 기록. 커밋 4d675fc는 후속 커밋에서 되돌림
 - [x] ~~T11: 실 타일 정렬 검증~~ — **폐기**. 실측으로 Open Q1 종결(정렬 불가, 대안=커스텀 패널)
-- [ ] T12: README/CHANGELOG/HACS 마무리 — verify: HACS 설치 수동 확인 (지도 교체 미지원 명시)
-- [ ] **Checkpoint 5**: Success Criteria 1~7 충족(#8 지도교체는 폐기), 최종 리뷰
+- [x] T12: README/CHANGELOG/HACS 마무리 (2026-07-03) — README(설치·서비스 3종 예시·ETA best-effort·지도교체 미지원),
+      CHANGELOG, hacs.json 유효. test_repo_docs로 README↔services.yaml·hacs·CHANGELOG 가드. HACS 실설치는 사용자 몫
+- [ ] **Checkpoint 5**: Success Criteria 1~7 충족(#8 지도교체는 폐기), 최종 리뷰 (사용자)
