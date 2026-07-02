@@ -50,6 +50,16 @@
       }
     }
   },
+  "selector": {
+    "mode": {
+      "options": {
+        "car": "자동차",
+        "traffic": "대중교통",
+        "walk": "도보",
+        "bicycle": "자전거"
+      }
+    }
+  },
   "exceptions": {
     "no_results": {
       "message": "\"{query}\"에 대한 장소를 찾지 못했습니다."

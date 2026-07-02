@@ -27,6 +27,7 @@ get_directions:
       default: car
       selector:
         select:
+          translation_key: mode
           options:
             - car
             - traffic

@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+from custom_components.kakao_map.const import DIRECTIONS_MODES
+
 PLACEHOLDER = re.compile(r"\{([^{}]*)\}")
 TRANSLATIONS = Path(__file__).parent.parent / "custom_components" / "kakao_map" / "translations"
 
@@ -39,3 +41,12 @@ def test_translation_placeholders_are_bare_identifiers(name: str) -> None:
                 f"{name}.json: '{{{placeholder}}}' is not a bare placeholder; "
                 "the frontend ICU formatter raises INVALID_ARGUMENT_TYPE"
             )
+
+
+@pytest.mark.parametrize("name", ["en", "ko"])
+def test_mode_selector_options_cover_all_modes(name: str) -> None:
+    """The mode selector labels one entry for every travel mode token."""
+    data = json.loads((TRANSLATIONS / f"{name}.json").read_text(encoding="utf-8"))
+    options = data["selector"]["mode"]["options"]
+    assert set(options) == set(DIRECTIONS_MODES)
+    assert all(label for label in options.values())
