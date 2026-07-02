@@ -5,6 +5,13 @@ set -euxo pipefail
 
 cd "$(dirname "$0")/.."
 
+# HA installs integration requirements into config/deps (broken import
+# path) unless it detects a venv or docker. Apple Container CLI doesn't
+# create /.dockerenv, so fake it → runtime installs go to site-packages.
+if [ ! -f /.dockerenv ]; then
+  sudo touch /.dockerenv
+fi
+
 python3 -m pip install --upgrade pip wheel
 
 # System libraries used by HA's default_config bundle:
