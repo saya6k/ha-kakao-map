@@ -5,3 +5,37 @@ search_place:
       example: "판교 스타벅스"
       selector:
         text:
+
+get_directions:
+  fields:
+    origin_entity:
+      example: person.me
+      selector:
+        entity:
+    origin_location:
+      example: "{latitude: 37.5665, longitude: 126.978}"
+      selector:
+        location:
+          radius: false
+    destination_entity:
+      example: zone.home
+      selector:
+        entity:
+    destination_location:
+      example: "{latitude: 37.3945, longitude: 127.1112}"
+      selector:
+        location:
+          radius: false
+    waypoints:
+      example: "[{latitude: 37.39, longitude: 127.11}]"
+      selector:
+        object:
+    mode:
+      default: car
+      selector:
+        select:
+          options:
+            - car
+            - traffic
+            - walk
+            - bicycle

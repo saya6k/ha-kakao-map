@@ -26,6 +26,36 @@
           "description": "검색 키워드 (예: 장소·상호명)."
         }
       }
+    },
+    "get_directions": {
+      "name": "길찾기",
+      "description": "출발지와 도착지(선택적 경유지 포함) 사이의 카카오맵 경로 링크를 만들고 구간별 지점을 반환합니다. 소요시간은 이후 단계에서 추가됩니다.",
+      "fields": {
+        "origin_entity": {
+          "name": "출발 엔티티",
+          "description": "출발지 위치를 가진 엔티티(person, device_tracker, zone 등). 출발 위치와 택1."
+        },
+        "origin_location": {
+          "name": "출발 위치",
+          "description": "지도에서 선택한 출발지. 출발 엔티티와 택1."
+        },
+        "destination_entity": {
+          "name": "도착 엔티티",
+          "description": "도착지 위치를 가진 엔티티. 도착 위치와 택1."
+        },
+        "destination_location": {
+          "name": "도착 위치",
+          "description": "지도에서 선택한 도착지. 도착 엔티티와 택1."
+        },
+        "waypoints": {
+          "name": "경유지",
+          "description": "최대 5개, 각 항목은 {latitude, longitude} 위치. 대중교통 모드에서는 사용할 수 없습니다."
+        },
+        "mode": {
+          "name": "이동 수단",
+          "description": "car / traffic(대중교통) / walk / bicycle."
+        }
+      }
     }
   },
   "exceptions": {
@@ -47,11 +77,14 @@
     "entity_missing_coordinates": {
       "message": "엔티티 {entity_id}에 latitude/longitude 속성이 없습니다."
     },
-    "invalid_coords": {
-      "message": "{role} 좌표가 잘못되었습니다: {value}. [위도, 경도] 형식이어야 합니다."
+    "invalid_location": {
+      "message": "{role} 위치가 잘못되었습니다: {value}. 위도/경도 쌍이어야 합니다."
     },
-    "invalid_waypoint": {
-      "message": "경유지 \"{value}\"가 잘못되었습니다. entity ID 또는 \"위도,경도\" 형식이어야 합니다."
+    "traffic_no_waypoints": {
+      "message": "대중교통 경로는 경유지를 지원하지 않습니다. 경유지를 제거하거나 다른 모드를 선택하세요."
+    },
+    "too_many_waypoints": {
+      "message": "경유지가 너무 많습니다 ({count}개). 카카오맵은 최대 {max}개까지 지원합니다."
     }
   }
 }

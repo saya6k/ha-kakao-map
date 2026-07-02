@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 import aiohttp
 import voluptuous as vol
 from homeassistant.core import (
@@ -15,13 +17,40 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
 from .api import KakaoApiError, KakaoLocalApi
-from .const import DOMAIN, MAP_LINK_BASE
+from .const import (
+    DIRECTIONS_LINK_BASE,
+    DIRECTIONS_MODES,
+    DOMAIN,
+    MAP_LINK_BASE,
+    MAX_WAYPOINTS,
+    MODE_CAR,
+    MODE_TRAFFIC,
+)
+from .helpers import resolve_point, resolve_waypoint
 
 SERVICE_SEARCH_PLACE = "search_place"
+SERVICE_GET_DIRECTIONS = "get_directions"
 
 ATTR_QUERY = "query"
+ATTR_ORIGIN_ENTITY = "origin_entity"
+ATTR_ORIGIN_LOCATION = "origin_location"
+ATTR_DESTINATION_ENTITY = "destination_entity"
+ATTR_DESTINATION_LOCATION = "destination_location"
+ATTR_WAYPOINTS = "waypoints"
+ATTR_MODE = "mode"
 
 SEARCH_PLACE_SCHEMA = vol.Schema({vol.Required(ATTR_QUERY): cv.string})
+
+GET_DIRECTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ORIGIN_ENTITY): cv.entity_id,
+        vol.Optional(ATTR_ORIGIN_LOCATION): dict,
+        vol.Optional(ATTR_DESTINATION_ENTITY): cv.entity_id,
+        vol.Optional(ATTR_DESTINATION_LOCATION): dict,
+        vol.Optional(ATTR_WAYPOINTS, default=list): [dict],
+        vol.Optional(ATTR_MODE, default=MODE_CAR): vol.In(DIRECTIONS_MODES),
+    }
+)
 
 
 @callback
@@ -56,11 +85,75 @@ def async_setup_services(hass: HomeAssistant, api: KakaoLocalApi) -> None:
             "map_url": f"{MAP_LINK_BASE}/{name},{latitude},{longitude}",
         }
 
+    async def _async_get_directions(call: ServiceCall) -> ServiceResponse:
+        mode = call.data[ATTR_MODE]
+        waypoints = call.data[ATTR_WAYPOINTS]
+        if len(waypoints) > MAX_WAYPOINTS:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="too_many_waypoints",
+                translation_placeholders={
+                    "count": str(len(waypoints)),
+                    "max": str(MAX_WAYPOINTS),
+                },
+            )
+        if mode == MODE_TRAFFIC and waypoints:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="traffic_no_waypoints"
+            )
+        points = [
+            resolve_point(
+                hass,
+                role="출발지",
+                entity_id=call.data.get(ATTR_ORIGIN_ENTITY),
+                location=call.data.get(ATTR_ORIGIN_LOCATION),
+            )
+        ]
+        points.extend(
+            resolve_waypoint(location, index=index)
+            for index, location in enumerate(waypoints, start=1)
+        )
+        points.append(
+            resolve_point(
+                hass,
+                role="도착지",
+                entity_id=call.data.get(ATTR_DESTINATION_ENTITY),
+                location=call.data.get(ATTR_DESTINATION_LOCATION),
+            )
+        )
+        path = "/".join(f"{p.name},{p.latitude},{p.longitude}" for p in points)
+        legs = [
+            {
+                "from": a.name,
+                "from_latitude": a.latitude,
+                "from_longitude": a.longitude,
+                "to": b.name,
+                "to_latitude": b.latitude,
+                "to_longitude": b.longitude,
+            }
+            for a, b in pairwise(points)
+        ]
+        return {
+            "route_url": f"{DIRECTIONS_LINK_BASE}/{mode}/{path}",
+            "mode": mode,
+            "duration": None,
+            "distance": None,
+            "arrival_time": None,
+            "legs": legs,
+        }
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_SEARCH_PLACE,
         _async_search_place,
         schema=SEARCH_PLACE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_DIRECTIONS,
+        _async_get_directions,
+        schema=GET_DIRECTIONS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -69,3 +162,4 @@ def async_setup_services(hass: HomeAssistant, api: KakaoLocalApi) -> None:
 def async_unload_services(hass: HomeAssistant) -> None:
     """Remove the kakao_map services."""
     hass.services.async_remove(DOMAIN, SERVICE_SEARCH_PLACE)
+    hass.services.async_remove(DOMAIN, SERVICE_GET_DIRECTIONS)

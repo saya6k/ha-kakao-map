@@ -13,8 +13,10 @@
 - [x] **Checkpoint 2**: Success Criteria #2 (2026-07-02 실 HA에서 카카오판교아지트 검색 응답 확인)
 
 ## Phase 3: 길찾기 링크
-- [x] T5: 위치 해석 헬퍼 (entity/coords/waypoint) — verify: test_resolve_* 통과 (순수 로직이라 T3보다 먼저 구현)
-- [ ] T6: `get_directions` 링크+legs (ETA null) — verify: 모드별 URL/legs/에러 테스트 + 링크 수동 확인
+- [x] T5: 위치 해석 헬퍼 (entity/location/waypoint) — verify: test_resolve_* 통과 (순수 로직이라 T3보다 먼저 구현)
+      ※ 좌표 입력을 `[위도,경도]` 리스트 → HA `location` selector(`{latitude, longitude}` dict, radius 비활성)로 변경.
+        waypoints도 location dict 리스트(entity 경유지 미지원). SPEC 반영 완료.
+- [x] T6: `get_directions` 링크+legs (ETA null) — verify: 모드별 URL/legs/에러 테스트 통과 (2026-07-02). 링크 수동 확인은 사용자 몫
 - [ ] **Checkpoint 3**: 링크 E2E, Success Criteria #4 → 리뷰
 
 ## Phase 4: ETA (내부 API, best-effort)

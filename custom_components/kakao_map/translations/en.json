@@ -26,6 +26,36 @@
           "description": "Search keyword, e.g. a place or business name."
         }
       }
+    },
+    "get_directions": {
+      "name": "Get directions",
+      "description": "Builds a Kakao Map route link between an origin and destination (with optional waypoints) and returns the per-leg points. Travel time is added in a later step.",
+      "fields": {
+        "origin_entity": {
+          "name": "Origin entity",
+          "description": "Entity holding the origin location (person, device_tracker, zone, ...). Use this or an origin location."
+        },
+        "origin_location": {
+          "name": "Origin location",
+          "description": "Origin picked on the map. Use this or an origin entity."
+        },
+        "destination_entity": {
+          "name": "Destination entity",
+          "description": "Entity holding the destination location. Use this or a destination location."
+        },
+        "destination_location": {
+          "name": "Destination location",
+          "description": "Destination picked on the map. Use this or a destination entity."
+        },
+        "waypoints": {
+          "name": "Waypoints",
+          "description": "Up to 5 stops, each a {latitude, longitude} location. Not allowed with the public transit mode."
+        },
+        "mode": {
+          "name": "Travel mode",
+          "description": "car, traffic (public transit), walk, or bicycle."
+        }
+      }
     }
   },
   "exceptions": {
@@ -47,11 +77,14 @@
     "entity_missing_coordinates": {
       "message": "Entity {entity_id} has no latitude/longitude attributes."
     },
-    "invalid_coords": {
-      "message": "Invalid coordinates for {role}: {value}. Expected [latitude, longitude]."
+    "invalid_location": {
+      "message": "Invalid location for {role}: {value}. Expected a latitude/longitude pair."
     },
-    "invalid_waypoint": {
-      "message": "Invalid waypoint \"{value}\". Expected an entity ID or \"latitude,longitude\"."
+    "traffic_no_waypoints": {
+      "message": "Public transit routes do not support waypoints. Remove the waypoints or choose another mode."
+    },
+    "too_many_waypoints": {
+      "message": "Too many waypoints ({count}). Kakao Map allows at most {max}."
     }
   }
 }

@@ -1,23 +1,20 @@
-"""Resolve get_directions point inputs (entity selector or coordinates) to WGS84.
+"""Resolve get_directions point inputs (entity selector or map location) to WGS84.
 
-Follows the pattern of the HERE / Waze / Google travel-time integrations: a point
-is either an entity holding latitude/longitude attributes or an explicit
-coordinate pair, resolved at call time. Unlike their `find_coordinates` helper,
-failures raise a ServiceValidationError naming the exact input at fault.
+Each origin/destination is either an entity holding latitude/longitude attributes
+or a location-selector value (`{"latitude": ..., "longitude": ...}`), resolved at
+call time. Waypoints are location-selector values only. Failures raise a
+ServiceValidationError naming the exact input at fault.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-import voluptuous as vol
 from homeassistant.const import ATTR_FRIENDLY_NAME, ATTR_LATITUDE, ATTR_LONGITUDE
-from homeassistant.core import HomeAssistant, valid_entity_id
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
 from .const import DOMAIN
-
-COORDS_SCHEMA = vol.All([vol.Coerce(float)], vol.Length(min=2, max=2))
 
 
 @dataclass(slots=True, frozen=True)
@@ -27,15 +24,6 @@ class ResolvedPoint:
     name: str
     latitude: float
     longitude: float
-
-
-def _is_number(value: str) -> bool:
-    """Return True if the whole string parses as a float."""
-    try:
-        float(value)
-    except ValueError:
-        return False
-    return True
 
 
 def _resolve_entity(hass: HomeAssistant, entity_id: str) -> ResolvedPoint:
@@ -59,15 +47,29 @@ def _resolve_entity(hass: HomeAssistant, entity_id: str) -> ResolvedPoint:
     return ResolvedPoint(name=name, latitude=float(latitude), longitude=float(longitude))
 
 
+def _location_coords(location: object, *, role: str) -> tuple[float, float]:
+    """Extract (latitude, longitude) from a location-selector value, ignoring radius."""
+    if isinstance(location, dict):
+        latitude = location.get(ATTR_LATITUDE)
+        longitude = location.get(ATTR_LONGITUDE)
+        if isinstance(latitude, int | float) and isinstance(longitude, int | float):
+            return float(latitude), float(longitude)
+    raise ServiceValidationError(
+        translation_domain=DOMAIN,
+        translation_key="invalid_location",
+        translation_placeholders={"role": role, "value": str(location)},
+    )
+
+
 def resolve_point(
     hass: HomeAssistant,
     *,
     role: str,
     entity_id: str | None = None,
-    coords: object = None,
+    location: object = None,
 ) -> ResolvedPoint:
-    """Resolve one origin/destination input given as entity XOR [lat, lon] coords."""
-    if entity_id is not None and coords is not None:
+    """Resolve one origin/destination input given as entity XOR a location value."""
+    if entity_id is not None and location is not None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="point_input_conflict",
@@ -75,38 +77,18 @@ def resolve_point(
         )
     if entity_id is not None:
         return _resolve_entity(hass, entity_id)
-    if coords is None:
+    if location is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="point_input_missing",
             translation_placeholders={"role": role},
         )
-    try:
-        latitude, longitude = COORDS_SCHEMA(coords)
-    except vol.Invalid as err:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="invalid_coords",
-            translation_placeholders={"role": role, "value": str(coords)},
-        ) from err
+    latitude, longitude = _location_coords(location, role=role)
     return ResolvedPoint(name=role, latitude=latitude, longitude=longitude)
 
 
-def resolve_waypoint(hass: HomeAssistant, value: str, *, index: int) -> ResolvedPoint:
-    """Resolve one waypoint entry given as an entity_id or a "lat,lon" string."""
-    if "," in value:
-        parts = [part.strip() for part in value.split(",")]
-        if len(parts) == 2:
-            try:
-                latitude, longitude = (float(parts[0]), float(parts[1]))
-            except ValueError:
-                pass
-            else:
-                return ResolvedPoint(name=f"경유지{index}", latitude=latitude, longitude=longitude)
-    elif valid_entity_id(value) and not _is_number(value):
-        return _resolve_entity(hass, value)
-    raise ServiceValidationError(
-        translation_domain=DOMAIN,
-        translation_key="invalid_waypoint",
-        translation_placeholders={"value": value},
-    )
+def resolve_waypoint(location: object, *, index: int) -> ResolvedPoint:
+    """Resolve one waypoint given as a location-selector value."""
+    name = f"경유지{index}"
+    latitude, longitude = _location_coords(location, role=name)
+    return ResolvedPoint(name=name, latitude=latitude, longitude=longitude)

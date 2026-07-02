@@ -146,41 +146,58 @@ async def test_resolve_entity_not_found(hass: HomeAssistant) -> None:
     assert err.value.translation_placeholders == {"entity_id": "zone.nowhere"}
 
 
-async def test_resolve_coords_list(hass: HomeAssistant) -> None:
-    """A [latitude, longitude] list resolves with the role as its name."""
-    point = resolve_point(hass, role="출발지", coords=[37.5, 127.0])
+async def test_resolve_location_dict(hass: HomeAssistant) -> None:
+    """A location value resolves with the role as its name."""
+    point = resolve_point(hass, role="출발지", location={"latitude": 37.5, "longitude": 127.0})
 
     assert point == ResolvedPoint(name="출발지", latitude=37.5, longitude=127.0)
 
 
-async def test_resolve_coords_coerces_strings(hass: HomeAssistant) -> None:
-    """Numeric strings in the coords list are coerced to floats."""
-    point = resolve_point(hass, role="도착지", coords=["37.4", "127.1"])
+async def test_resolve_location_ignores_radius(hass: HomeAssistant) -> None:
+    """A radius component in the location value is ignored."""
+    point = resolve_point(
+        hass,
+        role="도착지",
+        location={"latitude": 37.4, "longitude": 127.1, "radius": 100},
+    )
 
     assert point == ResolvedPoint(name="도착지", latitude=37.4, longitude=127.1)
 
 
-@pytest.mark.parametrize("coords", [[37.5], [37.5, 127.0, 1.0], ["abc", "127.0"], "37.5,127.0"])
-async def test_resolve_coords_invalid(hass: HomeAssistant, coords: object) -> None:
-    """Coords that are not a list of exactly two floats raise an error."""
+@pytest.mark.parametrize(
+    "location",
+    [
+        {"latitude": 37.5},
+        {"latitude": "abc", "longitude": 127.0},
+        [37.5, 127.0],
+        "37.5,127.0",
+    ],
+)
+async def test_resolve_location_invalid(hass: HomeAssistant, location: object) -> None:
+    """A location without numeric latitude and longitude raises an error."""
     with pytest.raises(ServiceValidationError) as err:
-        resolve_point(hass, role="출발지", coords=coords)
+        resolve_point(hass, role="출발지", location=location)
 
-    assert err.value.translation_key == "invalid_coords"
+    assert err.value.translation_key == "invalid_location"
     assert err.value.translation_placeholders["role"] == "출발지"
 
 
-async def test_resolve_entity_and_coords_conflict(hass: HomeAssistant) -> None:
-    """Passing both entity and coords for one point raises an error naming the role."""
+async def test_resolve_entity_and_location_conflict(hass: HomeAssistant) -> None:
+    """Passing both entity and location for one point raises an error naming the role."""
     with pytest.raises(ServiceValidationError) as err:
-        resolve_point(hass, role="출발지", entity_id="zone.home", coords=[37.5, 127.0])
+        resolve_point(
+            hass,
+            role="출발지",
+            entity_id="zone.home",
+            location={"latitude": 37.5, "longitude": 127.0},
+        )
 
     assert err.value.translation_key == "point_input_conflict"
     assert err.value.translation_placeholders == {"role": "출발지"}
 
 
-async def test_resolve_neither_entity_nor_coords(hass: HomeAssistant) -> None:
-    """Passing neither entity nor coords raises an error naming the role."""
+async def test_resolve_neither_entity_nor_location(hass: HomeAssistant) -> None:
+    """Passing neither entity nor location raises an error naming the role."""
     with pytest.raises(ServiceValidationError) as err:
         resolve_point(hass, role="도착지")
 
@@ -188,31 +205,183 @@ async def test_resolve_neither_entity_nor_coords(hass: HomeAssistant) -> None:
     assert err.value.translation_placeholders == {"role": "도착지"}
 
 
-async def test_resolve_waypoint_entity(hass: HomeAssistant) -> None:
-    """A waypoint entry holding an entity_id resolves like an entity."""
-    hass.states.async_set(
-        "zone.office",
-        "zoning",
-        {"latitude": 37.4, "longitude": 127.1, "friendly_name": "회사"},
-    )
-
-    point = resolve_waypoint(hass, "zone.office", index=1)
-
-    assert point == ResolvedPoint(name="회사", latitude=37.4, longitude=127.1)
-
-
-async def test_resolve_waypoint_coord_string(hass: HomeAssistant) -> None:
-    """A waypoint entry holding "lat,lon" resolves with a numbered name."""
-    point = resolve_waypoint(hass, "37.39, 127.11", index=2)
+async def test_resolve_waypoint_location(hass: HomeAssistant) -> None:
+    """A waypoint location resolves with a numbered name."""
+    point = resolve_waypoint({"latitude": 37.39, "longitude": 127.11}, index=2)
 
     assert point == ResolvedPoint(name="경유지2", latitude=37.39, longitude=127.11)
 
 
-@pytest.mark.parametrize("value", ["판교역", "37.5", "37.5,abc", ""])
-async def test_resolve_waypoint_invalid(hass: HomeAssistant, value: str) -> None:
-    """A waypoint entry that is neither an entity_id nor "lat,lon" raises an error."""
+@pytest.mark.parametrize("value", [{"latitude": 37.5}, "37.5,127.0", []])
+async def test_resolve_waypoint_invalid(hass: HomeAssistant, value: object) -> None:
+    """A waypoint that is not a valid location value raises an error."""
     with pytest.raises(ServiceValidationError) as err:
-        resolve_waypoint(hass, value, index=1)
+        resolve_waypoint(value, index=1)
 
-    assert err.value.translation_key == "invalid_waypoint"
-    assert err.value.translation_placeholders == {"value": value}
+    assert err.value.translation_key == "invalid_location"
+    assert err.value.translation_placeholders["role"] == "경유지1"
+
+
+async def test_get_directions_builds_car_link_and_legs(hass: HomeAssistant) -> None:
+    """get_directions returns the official route URL, legs, and null ETA fields."""
+    await _setup_integration(hass)
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "get_directions",
+        {
+            "origin_location": {"latitude": 37.5, "longitude": 127.0},
+            "destination_location": {"latitude": 37.4, "longitude": 127.1},
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    assert response == {
+        "route_url": "https://map.kakao.com/link/by/car/출발지,37.5,127.0/도착지,37.4,127.1",
+        "mode": "car",
+        "duration": None,
+        "distance": None,
+        "arrival_time": None,
+        "legs": [
+            {
+                "from": "출발지",
+                "from_latitude": 37.5,
+                "from_longitude": 127.0,
+                "to": "도착지",
+                "to_latitude": 37.4,
+                "to_longitude": 127.1,
+            }
+        ],
+    }
+
+
+@pytest.mark.parametrize("mode", ["car", "traffic", "walk", "bicycle"])
+async def test_get_directions_mode_token_in_url(hass: HomeAssistant, mode: str) -> None:
+    """Each travel mode produces the matching link/by/{mode} URL token."""
+    await _setup_integration(hass)
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "get_directions",
+        {
+            "origin_location": {"latitude": 37.5, "longitude": 127.0},
+            "destination_location": {"latitude": 37.4, "longitude": 127.1},
+            "mode": mode,
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    assert response["mode"] == mode
+    assert response["route_url"] == (
+        f"https://map.kakao.com/link/by/{mode}/출발지,37.5,127.0/도착지,37.4,127.1"
+    )
+
+
+async def test_get_directions_orders_waypoints_between_endpoints(
+    hass: HomeAssistant,
+) -> None:
+    """Waypoints appear in order between origin and destination in URL and legs."""
+    await _setup_integration(hass)
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "get_directions",
+        {
+            "origin_location": {"latitude": 37.5, "longitude": 127.0},
+            "waypoints": [
+                {"latitude": 37.39, "longitude": 127.11},
+                {"latitude": 37.41, "longitude": 127.12},
+            ],
+            "destination_location": {"latitude": 37.4, "longitude": 127.1},
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    assert response["route_url"] == (
+        "https://map.kakao.com/link/by/car/"
+        "출발지,37.5,127.0/경유지1,37.39,127.11/경유지2,37.41,127.12/도착지,37.4,127.1"
+    )
+    assert [leg["from"] for leg in response["legs"]] == ["출발지", "경유지1", "경유지2"]
+    assert [leg["to"] for leg in response["legs"]] == ["경유지1", "경유지2", "도착지"]
+
+
+async def test_get_directions_mixes_entity_and_coords(hass: HomeAssistant) -> None:
+    """An entity origin and a coordinate destination resolve into one route."""
+    await _setup_integration(hass)
+    hass.states.async_set(
+        "zone.home",
+        "zoning",
+        {"latitude": 37.5, "longitude": 127.0, "friendly_name": "집"},
+    )
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "get_directions",
+        {
+            "origin_entity": "zone.home",
+            "destination_location": {"latitude": 37.4, "longitude": 127.1},
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    assert response["route_url"] == (
+        "https://map.kakao.com/link/by/car/집,37.5,127.0/도착지,37.4,127.1"
+    )
+
+
+async def test_get_directions_traffic_rejects_waypoints(hass: HomeAssistant) -> None:
+    """Public transit mode with waypoints raises a validation error."""
+    await _setup_integration(hass)
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "get_directions",
+            {
+                "origin_location": {"latitude": 37.5, "longitude": 127.0},
+                "destination_location": {"latitude": 37.4, "longitude": 127.1},
+                "waypoints": [{"latitude": 37.39, "longitude": 127.11}],
+                "mode": "traffic",
+            },
+            blocking=True,
+            return_response=True,
+        )
+
+    assert err.value.translation_key == "traffic_no_waypoints"
+
+
+async def test_get_directions_rejects_more_than_five_waypoints(
+    hass: HomeAssistant,
+) -> None:
+    """More than five waypoints raises a validation error before resolution."""
+    await _setup_integration(hass)
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "get_directions",
+            {
+                "origin_location": {"latitude": 37.5, "longitude": 127.0},
+                "destination_location": {"latitude": 37.4, "longitude": 127.1},
+                "waypoints": [{"latitude": 37.0 + i, "longitude": 127.0} for i in range(6)],
+            },
+            blocking=True,
+            return_response=True,
+        )
+
+    assert err.value.translation_key == "too_many_waypoints"
+
+
+async def test_get_directions_removed_on_unload(hass: HomeAssistant) -> None:
+    """Unloading the entry removes the get_directions service."""
+    entry = await _setup_integration(hass)
+    assert hass.services.has_service(DOMAIN, "get_directions")
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert not hass.services.has_service(DOMAIN, "get_directions")
