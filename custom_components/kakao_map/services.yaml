@@ -10,14 +10,16 @@ get_directions:
   fields:
     origin:
       required: true
-      example: person.me
+      example: "{latitude: 37.5665, longitude: 126.978}"
       selector:
-        entity:
+        location:
+          radius: false
     destination:
       required: true
       example: "{latitude: 37.3945, longitude: 127.1112}"
       selector:
-        entity:
+        location:
+          radius: false
     waypoints:
       example: "[zone.office, {latitude: 37.39, longitude: 127.11}]"
       selector:
