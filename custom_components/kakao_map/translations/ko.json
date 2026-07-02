@@ -19,7 +19,7 @@
   "services": {
     "search_place": {
       "name": "장소 검색",
-      "description": "키워드로 카카오맵 장소를 검색해 상위 1건의 좌표·주소·지도 링크를 반환합니다.",
+      "description": "키워드로 카카오맵 장소를 검색해 상위 5건까지 좌표·주소·지도 링크를 반환합니다.",
       "fields": {
         "query": {
           "name": "검색어",

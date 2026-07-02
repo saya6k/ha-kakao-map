@@ -45,10 +45,10 @@ async def _setup_integration(hass: HomeAssistant) -> MockConfigEntry:
     return entry
 
 
-async def test_search_place_returns_top_result(
+async def test_search_place_returns_result_list(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    """search_place returns the first document mapped to the SPEC response schema."""
+    """search_place returns each document mapped to the SPEC response schema."""
     await _setup_integration(hass)
     other_doc = {**STARBUCKS_DOC, "place_name": "스타벅스 판교역점"}
     aioclient_mock.get(KEYWORD_SEARCH_URL, json={"documents": [STARBUCKS_DOC, other_doc]})
@@ -62,15 +62,53 @@ async def test_search_place_returns_top_result(
     )
 
     assert response == {
-        "place_name": "스타벅스 판교점",
-        "latitude": 37.3945,
-        "longitude": 127.1112,
-        "address": "경기 성남시 분당구 삼평동 681",
-        "road_address": "경기 성남시 분당구 판교역로 4",
-        "place_url": "http://place.map.kakao.com/26338954",
-        "map_url": "https://map.kakao.com/link/map/스타벅스 판교점,37.3945,127.1112",
+        "results": [
+            {
+                "place_name": "스타벅스 판교점",
+                "latitude": 37.3945,
+                "longitude": 127.1112,
+                "address": "경기 성남시 분당구 삼평동 681",
+                "road_address": "경기 성남시 분당구 판교역로 4",
+                "place_url": "http://place.map.kakao.com/26338954",
+                "map_url": "https://map.kakao.com/link/map/스타벅스 판교점,37.3945,127.1112",
+            },
+            {
+                "place_name": "스타벅스 판교역점",
+                "latitude": 37.3945,
+                "longitude": 127.1112,
+                "address": "경기 성남시 분당구 삼평동 681",
+                "road_address": "경기 성남시 분당구 판교역로 4",
+                "place_url": "http://place.map.kakao.com/26338954",
+                "map_url": "https://map.kakao.com/link/map/스타벅스 판교역점,37.3945,127.1112",
+            },
+        ]
     }
     assert aioclient_mock.mock_calls[-1][3]["Authorization"] == "KakaoAK test-key"
+
+
+async def test_search_place_caps_at_five_results(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """search_place returns at most the top 5 documents."""
+    await _setup_integration(hass)
+    docs = [{**STARBUCKS_DOC, "place_name": f"스타벅스 {i}호점"} for i in range(7)]
+    aioclient_mock.get(KEYWORD_SEARCH_URL, json={"documents": docs})
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "search_place",
+        {"query": "스타벅스"},
+        blocking=True,
+        return_response=True,
+    )
+
+    assert [r["place_name"] for r in response["results"]] == [
+        "스타벅스 0호점",
+        "스타벅스 1호점",
+        "스타벅스 2호점",
+        "스타벅스 3호점",
+        "스타벅스 4호점",
+    ]
 
 
 async def test_search_place_no_results(

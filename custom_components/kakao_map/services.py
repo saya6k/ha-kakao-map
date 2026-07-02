@@ -25,6 +25,7 @@ from .const import (
     DIRECTIONS_MODES,
     DOMAIN,
     MAP_LINK_BASE,
+    MAX_SEARCH_RESULTS,
     MAX_WAYPOINTS,
     MODE_BICYCLE,
     MODE_CAR,
@@ -56,6 +57,22 @@ GET_DIRECTIONS_SCHEMA = vol.Schema(
 )
 
 
+def _place_result(doc: dict[str, Any]) -> dict[str, Any]:
+    """Map a Kakao keyword-search document to the SPEC response schema."""
+    name = doc["place_name"]
+    latitude = float(doc["y"])
+    longitude = float(doc["x"])
+    return {
+        "place_name": name,
+        "latitude": latitude,
+        "longitude": longitude,
+        "address": doc["address_name"],
+        "road_address": doc["road_address_name"],
+        "place_url": doc["place_url"],
+        "map_url": f"{MAP_LINK_BASE}/{name},{latitude},{longitude}",
+    }
+
+
 @callback
 def async_setup_services(
     hass: HomeAssistant, api: KakaoLocalApi, route_api: KakaoMapRouteApi
@@ -76,19 +93,7 @@ def async_setup_services(
                 translation_key="no_results",
                 translation_placeholders={"query": query},
             )
-        doc = documents[0]
-        name = doc["place_name"]
-        latitude = float(doc["y"])
-        longitude = float(doc["x"])
-        return {
-            "place_name": name,
-            "latitude": latitude,
-            "longitude": longitude,
-            "address": doc["address_name"],
-            "road_address": doc["road_address_name"],
-            "place_url": doc["place_url"],
-            "map_url": f"{MAP_LINK_BASE}/{name},{latitude},{longitude}",
-        }
+        return {"results": [_place_result(doc) for doc in documents[:MAX_SEARCH_RESULTS]]}
 
     async def _async_get_directions(call: ServiceCall) -> ServiceResponse:
         mode = call.data[ATTR_MODE]

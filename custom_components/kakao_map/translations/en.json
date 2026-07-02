@@ -19,7 +19,7 @@
   "services": {
     "search_place": {
       "name": "Search place",
-      "description": "Searches Kakao Map for a place by keyword and returns the top result with coordinates, addresses, and map links.",
+      "description": "Searches Kakao Map for a place by keyword and returns up to the top 5 results, each with coordinates, addresses, and map links.",
       "fields": {
         "query": {
           "name": "Query",

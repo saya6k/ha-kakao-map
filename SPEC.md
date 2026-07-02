@@ -7,7 +7,7 @@ Home Assistant 커스텀 컴포넌트. Kakao Local REST API, 카카오맵 웹 UR
 
 한국 사용자용 HA 통합. 세 가지 기능:
 
-1. **장소 검색 서비스** — 자연어 키워드로 장소를 검색해 상위 1건의 좌표·주소·카카오맵 링크를 반환
+1. **장소 검색 서비스** — 자연어 키워드로 장소를 검색해 상위 5건까지 좌표·주소·카카오맵 링크를 반환
 2. **길찾기 서비스** — 출발/도착/경유지(선택)를 **entity selector(위치 보유 기기/엔티티) 또는 좌표**로 받아,
    이동수단(자동차/대중교통/도보/자전거)별 카카오맵 길찾기 링크 + 구간 리스트 + 소요시간·도착 예정시간을 반환
 3. ~~**기본 지도 교체 서비스**~~ — **폐기(2026-07-03).** 프론트엔드 타일 URL 패치로 시도했으나
@@ -130,16 +130,18 @@ SPEC.md
 |---|---|---|---|
 | `query` | string | O | 검색 키워드 (예: "판교 스타벅스") |
 
-응답 (상위 1건):
+응답 (상위 5건까지, `results` 리스트):
 
 ```yaml
-place_name: 스타벅스 판교점
-latitude: 37.39...
-longitude: 127.11...
-address: 경기 성남시 분당구 ...        # address_name
-road_address: 경기 성남시 분당구 ...   # road_address_name
-place_url: http://place.map.kakao.com/...
-map_url: https://map.kakao.com/link/map/스타벅스 판교점,37.39...,127.11...
+results:
+  - place_name: 스타벅스 판교점
+    latitude: 37.39...
+    longitude: 127.11...
+    address: 경기 성남시 분당구 ...        # address_name
+    road_address: 경기 성남시 분당구 ...   # road_address_name
+    place_url: http://place.map.kakao.com/...
+    map_url: https://map.kakao.com/link/map/스타벅스 판교점,37.39...,127.11...
+  - ...   # 검색 결과 순서대로 최대 5건
 ```
 
 결과 0건 → `ServiceValidationError`.
