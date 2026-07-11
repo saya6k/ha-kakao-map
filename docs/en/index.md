@@ -108,7 +108,7 @@ response_variable: route
 
 The same four actions are also registered as an LLM tool API (`search_place`, `search_nearby`, `geocode_address`, `get_directions`), so an AI-backed Assist pipeline (e.g. Google Generative AI Conversation, OpenAI Conversation) can call them from natural language. Enable it in the conversation agent's options by selecting **Kakao Map** under the exposed LLM APIs. Place and nearby-search results also render as visual cards on cards-capable Assist surfaces (e.g. voice-satellite dashboards).
 
-**Tool exposure requires Home Assistant 2026.8+.** On older Home Assistant the integration installs normally and all four services keep working as YAML calls — only Assist/LLM tool registration is unavailable (selecting Kakao Map as an agent's API exposes no tools there).
+**Tool exposure requires Home Assistant 2026.8+.** On older Home Assistant the integration installs normally and all four services keep working as YAML calls — only Assist/LLM tool registration is unavailable (selecting Kakao Map as an agent's API exposes no tools there). A **Repairs** notification (Settings → System → Repairs) explains this while it applies, and clears automatically once you upgrade.
 
 MCP clients can also reach the API directly at `/api/mcp/kakao_map` (requires an admin-scoped token), independent of any conversation agent's configured API list.
 
