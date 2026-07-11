@@ -23,10 +23,17 @@ import logging
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.helpers.issue_registry import (
+    IssueSeverity,
+    async_create_issue,
+    async_delete_issue,
+)
 
 from .const import API_NAME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+ISSUE_LLM_TOOLS_UNAVAILABLE = "llm_tools_require_2026_8"
 
 
 class KakaoMapAPI(llm.API):
@@ -47,10 +54,20 @@ class KakaoMapAPI(llm.API):
                 "Kakao Map tools require Home Assistant 2026.8 or later; "
                 "none are available on this version"
             )
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                ISSUE_LLM_TOOLS_UNAVAILABLE,
+                is_fixable=False,
+                severity=IssueSeverity.WARNING,
+                translation_key=ISSUE_LLM_TOOLS_UNAVAILABLE,
+                learn_more_url="https://github.com/saya6k/hacs-kakao-map",
+            )
             return llm.APIInstance(
                 api=self, api_prompt="", llm_context=llm_context, tools=[]
             )
 
+        async_delete_issue(self.hass, DOMAIN, ISSUE_LLM_TOOLS_UNAVAILABLE)
         llm_tools = await async_get_platform_tools(self.hass, llm_context, self.id)
         return llm.APIInstance(
             api=self,
