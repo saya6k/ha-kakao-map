@@ -12,10 +12,12 @@ import importlib.util
 import pytest
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import Context, HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers import llm
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kakao_map.const import DOMAIN
+from custom_components.kakao_map.llm_registration import ISSUE_LLM_TOOLS_UNAVAILABLE
+from tests.vendor.ha_common import MockConfigEntry
 
 pytestmark = pytest.mark.skipif(
     importlib.util.find_spec("homeassistant.components.llm") is not None,
@@ -40,3 +42,7 @@ async def test_async_get_api_instance_degrades_gracefully_without_llm_integratio
     )
 
     assert instance.tools == []
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, ISSUE_LLM_TOOLS_UNAVAILABLE)
+    assert issue is not None
+    assert issue.severity == ir.IssueSeverity.WARNING
